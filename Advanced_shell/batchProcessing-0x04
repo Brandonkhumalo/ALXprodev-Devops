@@ -5,10 +5,10 @@ mkdir -p pokemon_data
 error_log="errors.txt"
 > "$error_log"  # Clear previous error log
 
-# List of Pokémon
+# List of Pokémon to fetch
 pokemon_list=("bulbasaur" "ivysaur" "venusaur" "charmander" "charmeleon")
 
-# Function to fetch Pokémon data
+# Function to fetch a single Pokémon with retry logic
 fetch_pokemon() {
     local name=$1
     local retries=3
@@ -22,7 +22,7 @@ fetch_pokemon() {
         if [ $? -eq 0 ]; then
             echo "$response" > "pokemon_data/${name}.json"
             echo "Saved data to pokemon_data/${name}.json ✅"
-            return
+            return 0
         else
             echo "Attempt $attempt failed for $name ❌"
             ((attempt++))
@@ -34,12 +34,12 @@ fetch_pokemon() {
     echo "$name" >> "$error_log"
 }
 
-# Fetch all Pokémon in parallel
+# Main: Launch all fetches in parallel
 for name in "${pokemon_list[@]}"; do
     fetch_pokemon "$name" &
 done
 
-# Wait for all background jobs to finish
+# Wait for all background processes to complete
 wait
 
-echo "✅ All Pokémon data fetch processes complete."
+echo "✅ All Pokémon fetch operations completed."
