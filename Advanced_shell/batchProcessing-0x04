@@ -1,17 +1,35 @@
 #!/bin/bash
 
 mkdir -p pokemon_data
+timeout=10  # seconds timeout per request
 
 pokemon_list=("bulbasaur" "ivysaur" "venusaur" "charmander" "charmeleon")
 
 fetch_pokemon() {
     local name=$1
     echo "Fetching data for $name..."
-    curl -s "https://pokeapi.co/api/v2/pokemon/$name" -o "pokemon_data/${name}.json"
+    curl -s "https://pokeapi.co/api/v2/pokemon/$name" -o "pokemon_data/${name}.json" &
+    pid=$!
+
+    # Wait for process with timeout
+    SECONDS=0
+    while kill -0 "$pid" 2>/dev/null; do
+        if [ $SECONDS -ge $timeout ]; then
+            echo "Timeout reached for $name (PID $pid). Killing process."
+            kill "$pid"
+            wait "$pid" 2>/dev/null
+            return 1
+        fi
+        sleep 1
+    done
+
+    wait "$pid"
     if [ $? -eq 0 ]; then
         echo "Saved data to pokemon_data/${name}.json ✅"
+        return 0
     else
         echo "Failed to fetch $name"
+        return 1
     fi
 }
 
@@ -19,7 +37,5 @@ for name in "${pokemon_list[@]}"; do
     fetch_pokemon "$name" &
 done
 
-# Wait for all background jobs to finish
 wait
-
-echo "All Pokémon data fetched in parallel."
+echo "All Pokémon data fetch operations complete."
